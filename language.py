@@ -271,11 +271,12 @@ def train_language_detector(dataset_path='dataset.csv'):
 def test_predictions(predictor):
     """Test the trained model with sample texts"""
     test_examples = [
-        "Hello, how are you doing today?",
+        "Hello how is it going?",
         "Bonjour, comment allez-vous?",
         "Hola, ¿cómo estás hoy?",
         "Guten Tag, wie geht es Ihnen?",
         "Ciao, come stai oggi?",
+        "你好，你好吗，蓝黑兔"
     ]
     
     print(f"\n🧪 Testing predictions:")
