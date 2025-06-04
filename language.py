@@ -25,9 +25,27 @@ def load_data():
 
     return df
 
+def clean_text(text):
+    # checks if text is missing
+    if pd.isna(text):
+        return ""
+    
+    text = str(text)
+    # removes anything more than 1 white space
+    text = re.sub(r'\s+', ' ', text.strip())
 
+    return text
+
+def preprocess_data(df):
+    # apply clean_text to each text field
+    df['Text'] = df['Text'].apply(clean_text)
+
+    df = df[df['Text'].str.len() > 0]
+
+    return df
 def main():
-    load_data()
+    df = load_data()
+    df = preprocess_data(df)
 
 if __name__ == "__main__":
     main()
