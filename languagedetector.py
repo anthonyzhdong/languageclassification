@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt  # For creating graphs
 import joblib                   # For saving our trained model
 import os
 
-def load_data():
+def load_data(dataset):
     try:
-        df  = pd.read_csv("dataset.csv")
+        df  = pd.read_csv(dataset)
         print("file load success")
         return df
     except FileNotFoundError:
@@ -179,21 +179,25 @@ def quick_detect(model, text):
     except:
         return "error"
 
+def train_model():
+    df = load_data("dataset.csv")
+    df = preprocess_data(df)
+    X_train, X_test, y_train, y_test = split_data(df)
+    X_train_features, X_test_features, vectorizer = create_features(X_train, X_test)
+
+    model = train_model(X_train_features, y_train)
+
+    y_pred, y_pred_proba = make_predictions(model, X_test_features, y_test)
+
+    language_detector = create_language_detector(model, vectorizer)
+
+    model_file = save_model(model, vectorizer)
+
 def main():
-    # training -> 
-    #df = load_data()
-    #df = preprocess_data(df)
 
-    #X_train, X_test, y_train, y_test = split_data(df)
-    #X_train_features, X_test_features, vectorizer = create_features(X_train, X_test)
+    # train the model (remove the #)
+    #trainmodel()
 
-    #model = train_model(X_train_features, y_train)
-
-    #y_pred, y_pred_proba = make_predictions(model, X_test_features, y_test)
-
-    #language_detector = create_language_detector(model, vectorizer)
-    
-    #model_file = save_model(model, vectorizer)
     language = quick_detect("languagemodel.pkl","hello this is a new language please detect what language this is please hello test")
     print(language)
 
