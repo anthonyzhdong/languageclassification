@@ -26,14 +26,12 @@ def clean_text(text):
     if pd.isna(text):
         return ""
     text = str(text)
-
     text = re.sub(r'\s+', ' ', text.strip())
 
     return text
 
 def preprocess_data(df):
     df['Text'] = df['Text'].apply(clean_text)
-
     df = df[df['Text'].str.len() > 0]
 
     return df
@@ -59,10 +57,10 @@ def create_features(X_train, X_test):
 
     return X_train_features, X_test_features, vectorizer
 
+
 # Training the model -> find the best weights that minimize prediction errors
 # process -> start with random weights -> make predictions on training data -> calculate how wrong we are (loss function)
 # adjust weights to reduce errors & repeat until convergence
-
 def train_model(X_train_features, y_train):
     model = LogisticRegression(
         max_iter=1000, # maximum iterations
@@ -71,12 +69,10 @@ def train_model(X_train_features, y_train):
         multi_class='ovr', # one-vs-rest for multiclass
         C=1.0 # regularization parameter
     )
-
     model.fit(X_train_features,y_train)
 
     return model
-# Run the explanation
-#explain_logistic_regression()
+
 
 def make_predictions(model, X_test_features, y_test):
     # using trained model to actually make predictions
@@ -117,41 +113,41 @@ def create_language_detector(model, vectorizer):
 
     def detect_language(text, show_confidence=True, top_n=1):
         #if not text or len(text.strip()) < 3:
-            #return {"error"}
+        #return {"error"}
         
-            # Clean the text
-            clean_input = re.sub(r'\s+',' ',text.strip())
-            # convert to features
-            text_features = vectorizer.transform([clean_input])
-            # make prediction
-            prediction = model.predict(text_features)[0]
-            # get confidence scores
-            probabilities = model.predict_proba(text_features)[0]
-            # get top N predictions
-            top_indices = np.argsort(probabilities)[-top_n:][::-1]
-            top_predictions = []
+        # Clean the text
+        clean_input = re.sub(r'\s+',' ',text.strip())
+        # convert to features
+        text_features = vectorizer.transform([clean_input])
+        # make prediction
+        prediction = model.predict(text_features)[0]
+        # get confidence scores
+        probabilities = model.predict_proba(text_features)[0]
+        # get top N predictions
+        top_indices = np.argsort(probabilities)[-top_n:][::-1]
+        top_predictions = []
 
-            for idx in top_indices:
-                lang = model.classes_[idx]
-                prob = probabilities[idx]
-                top_predictions.append({
-                    'language': lang,
-                    'probability': prob,
-                    'percentage': f"{prob*100:.1f}%"
-                })
+        for idx in top_indices:
+            lang = model.classes_[idx]
+            prob = probabilities[idx]
+            top_predictions.append({
+                'language': lang,
+                'probability': prob,
+                'percentage': f"{prob*100:.1f}%"
+            })
             
-            result = {
-                'predicted_language': prediction,
-                'confidence': probabilities.max(),
-                'top_predictions': top_predictions
-            }
+        result = {
+            'predicted_language': prediction,
+            'confidence': probabilities.max(),
+            'top_predictions': top_predictions
+        }
 
-            if show_confidence:
-                print(f"Text: '{text[:50]}...'")
-                print(f"Predicted: {prediction} ({probabilities.max():.3f})")
-                print(f"Top {top_n}: {[p['language'] + f' ({p['percentage']})' for p in top_predictions]}")
+        if show_confidence:
+            print(f"Text: '{text[:50]}...'")
+            print(f"Predicted: {prediction} ({probabilities.max():.3f})")
+            print(f"Top {top_n}: {[p['language'] + f' ({p['percentage']})' for p in top_predictions]}")
 
-            return result
+        return result
     return detect_language
 
 
@@ -175,39 +171,32 @@ def load_model(filename='languagemodel.pkl'):
         return pipeline
     except FileNotFoundError:
         return None
+    
+def quick_detect(text):
+    try: 
+        pipeline = joblib.load('languagemodel.pkl')
+        return pipeline.predict([text])[0]
+    except:
+        return "error"
 
 def main():
-    df = load_data()
-    df = preprocess_data(df)
+    # training -> 
+    #df = load_data()
+    #df = preprocess_data(df)
 
-    X_train, X_test, y_train, y_test = split_data(df)
-    X_train_features, X_test_features, vectorizer = create_features(X_train, X_test)
+    #X_train, X_test, y_train, y_test = split_data(df)
+    #X_train_features, X_test_features, vectorizer = create_features(X_train, X_test)
 
-    model = train_model(X_train_features, y_train)
+    #model = train_model(X_train_features, y_train)
 
-    y_pred, y_pred_proba = make_predictions(model, X_test_features, y_test)
-    #analyze_model_weights(model, vectorizer)
+    #y_pred, y_pred_proba = make_predictions(model, X_test_features, y_test)
 
-    language_detector = create_language_detector(model, vectorizer)
-    # Test it with examples
+    #language_detector = create_language_detector(model, vectorizer)
+    
+    #model_file = save_model(model, vectorizer)
+    language = quick_detect("hello this is a new language please detect what language this is please hello test")
+    print(language)
 
-    #test_examples = [
-    #    "Hello",
-    #   "Bonjour, comment allez-vous?",
-    #  "Hola",
-    # "Guten Tag, wie geht es Ihnen?",
-    # "こんにちは、元気ですか？"
-    #]
-
-    #for example in test_examples:
-    #   print(f"\n🧪 Testing: '{example}'")
-    #  result = language_detector(example)
-    # if 'error' not in result:
-        #    print(f"   → {result['predicted_language']} (confidence: {result['confidence']:.3f})")
-
-    model_file = save_model(model, vectorizer)
-
-    #demonstrateNgrams()
 
 if __name__ == "__main__":
     main()
