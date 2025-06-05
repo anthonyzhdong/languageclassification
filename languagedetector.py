@@ -172,9 +172,9 @@ def load_model(filename='languagemodel.pkl'):
     except FileNotFoundError:
         return None
     
-def quick_detect(text):
+def quick_detect(model, text):
     try: 
-        pipeline = joblib.load('languagemodel.pkl')
+        pipeline = joblib.load(model)
         return pipeline.predict([text])[0]
     except:
         return "error"
@@ -194,7 +194,7 @@ def main():
     #language_detector = create_language_detector(model, vectorizer)
     
     #model_file = save_model(model, vectorizer)
-    language = quick_detect("hello this is a new language please detect what language this is please hello test")
+    language = quick_detect("languagemodel.pkl","hello this is a new language please detect what language this is please hello test")
     print(language)
 
 
