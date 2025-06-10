@@ -21,6 +21,19 @@ def load_data(dataset):
     except FileNotFoundError:
         print("file load unsuccessful")
         return None
+    
+
+def load_all_datasets():
+    train_df = load_data("train.csv")
+    test_df = load_data("test.csv")
+    valid_df = load_data("valid.csv")
+
+    train_df = train_df.rename(columns={'text':'Text', 'labels':'language'})
+    test_df = test_df.rename(columns={'text':'Text', 'labels':'language'})
+    valid_df = valid_df.rename(columns={'text':'Text', 'labels':'language'})
+
+    return train_df, test_df, valid_df
+
 
 def clean_text(text):
     if pd.isna(text):
@@ -85,6 +98,8 @@ def make_predictions(model, X_test_features, y_test):
 
     accuracy = accuracy_score(y_test, y_pred)
 
+    print(f"Accuracy: {accuracy:.4f}")
+
     print(f"\n📊 DETAILED RESULTS:")
     print(classification_report(y_test, y_pred))
 
@@ -95,23 +110,10 @@ def make_predictions(model, X_test_features, y_test):
 
     return y_pred, y_prediction_probability
 
-def split_data(df):
-    X = df['Text']
-    y = df['language']
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,y, # data to split
-        test_size = 0.2, # test size
-        random_state = 42, # same split every time
-        stratify=y # keep same % of each language in both sets
-    )
-
-    return X_train, X_test, y_train, y_test
-
 def create_language_detector(model, vectorizer):
     # wraps model & vectorizer into a function that will return the language it detects from text
 
-    def detect_language(text, show_confidence=True, top_n=1):
+    def detect_language(text, show_confidence=True, top_n=3):
         #if not text or len(text.strip()) < 3:
         #return {"error"}
         
@@ -151,7 +153,7 @@ def create_language_detector(model, vectorizer):
     return detect_language
 
 
-def save_model(model, vectorizer, filename = 'languagemodel.pkl'):
+def save_model(model, vectorizer, filename = 'languagemodel2.pkl'):
     from sklearn.pipeline import Pipeline
 
     complete_pipeline = Pipeline([
@@ -165,7 +167,7 @@ def save_model(model, vectorizer, filename = 'languagemodel.pkl'):
 
     return filename
 
-def load_model(filename='languagemodel.pkl'):
+def load_model(filename='languagemodel2.pkl'):
     try:
         pipeline = joblib.load(filename)
         return pipeline
@@ -179,11 +181,28 @@ def quick_detect(model, text):
     except:
         return "error"
 
-def train_model():
-    df = load_data("dataset.csv")
-    df = preprocess_data(df)
-    X_train, X_test, y_train, y_test = split_data(df)
-    X_train_features, X_test_features, vectorizer = create_features(X_train, X_test)
+def trainmodel():
+
+    train_df, test_df, valid_df = load_all_datasets()
+
+    train_df = preprocess_data(train_df)
+    test_df = preprocess_data(test_df)
+    valid_df = preprocess_data(valid_df)
+
+    # Prepare training data
+    X_train = train_df['Text']
+    y_train = train_df['language']
+    
+    # Prepare validation data
+    X_valid = valid_df['Text']
+    y_valid = valid_df['language']
+    
+    # Prepare test data
+    X_test = test_df['Text']
+    y_test = test_df['language']
+
+    X_train_features, X_valid_features, vectorizer = create_features(X_train, X_valid)
+    X_test_features = vectorizer.transform(X_test)
 
     model = train_model(X_train_features, y_train)
 
@@ -193,13 +212,78 @@ def train_model():
 
     model_file = save_model(model, vectorizer)
 
+    return language_detector, model_file
+
+def test_detector():
+    """Test the trained detector with sample texts"""
+    print("\n🧪 Testing Language Detector")
+    print("=" * 30)
+    
+    # Load the saved model
+    pipeline = load_model()
+    if pipeline is None:
+        print("No trained model found. Please run train_full_pipeline() first.")
+        return
+    
+    # Test samples
+    test_texts = [
+         "Hello, how are you today?",
+            "The quick brown fox jumps over the lazy dog.",
+            "Machine learning is revolutionizing technology across industries.",
+            "Yesterday I went to the store to buy groceries for dinner.",
+            "The weather forecast predicts rain throughout the weekend.",
+            "Education is the most powerful weapon which you can use to change the world.",
+            "Technology has transformed the way we communicate with each other.",
+            "The scientific method involves observation, hypothesis, and experimentation.",
+            "Hola, ¿cómo estás hoy?",
+            "El zorro marrón rápido salta sobre el perro perezoso.",
+            "La inteligencia artificial está transformando nuestras vidas.",
+            "Ayer fui al mercado para comprar verduras frescas.",
+            "Me gusta leer libros de historia en mi tiempo libre.",
+            "La educación es fundamental para el desarrollo de una sociedad.",
+            "El cambio climático es uno de los desafíos más importantes de nuestra época.",
+            "La literatura española tiene una rica tradición que se remonta a siglos atrás.",
+            "Bonjour, comment allez-vous aujourd'hui?",
+            "Le renard brun rapide saute par-dessus le chien paresseux.",
+            "L'intelligence artificielle révolutionne notre façon de travailler.",
+            "Hier, je suis allé au marché pour acheter des légumes frais.",
+            "J'aime beaucoup lire des romans français le soir.",
+            "L'éducation est la clé du développement personnel et professionnel.",
+            "La cuisine française est reconnue dans le monde entier pour sa sophistication.",
+            "Les innovations technologiques transforment rapidement notre société moderne.",
+                        "こんにちは、今日はいかがですか？",
+            "素早い茶色のキツネが怠惰な犬を飛び越えます。",
+            "人工知能は私たちの働き方を革命的に変えています。",
+            "昨日市場に新鮮な野菜を買いに行きました。",
+            "空いた時間に日本文学を読むのがとても好きです。",
+            "教育は個人と社会の発展にとって不可欠です。",
+            "日本語は独特な文字体系と豊かな表現力を持つ言語です。",
+            "技術革新は現代社会を急速に変革しています。",
+                        "สวัสดี วันนี้เป็นอย่างไรบ้าง?",
+            "จิ้งจอกสีน้ำตาลที่รวดเร็วกระโดดข้ามสุนัขที่ขี้เกียจ",
+            "ปัญญาประดิษฐ์กำลังปฏิวัติวิธีการทำงานของเรา",
+            "เมื่อวานนี้ฉันไปตลาดเพื่อซื้อผักสด",
+            "ฉันชอบอ่านวรรณกรรมไทยในเวลาว่าง",
+            "การศึกษาเป็นกุญแจสำคัญสู่การพัฒนาส่วนบุคคลและสังคม",
+            "ภาษาไทยมีประวัติศาสตร์ด้านวรรณกรรมที่ยาวนานและไวยากรณ์ที่ซับซ้อน",
+            "นวัตกรรมทางเทคโนโลยีกำลังเปลี่ยนแปลงสังคมสมัยใหม่ของเราอย่างรวดเร็ว"
+    ]
+    
+    for text in test_texts:
+        prediction = pipeline.predict([text])[0]
+        probabilities = pipeline.predict_proba([text])[0]
+        confidence = probabilities.max()
+        print(f"'{text}' -> {prediction} (confidence: {confidence:.3f})")
+
+
 def main():
 
     # train the model (remove the #)
     #trainmodel()
     
-    language = quick_detect("languagemodel.pkl","hello this is a new language please detect what language this is please hello test")
-    print(language)
+    #language = quick_detect("languagemodel.pkl","hello this is a new language please detect what language this is please hello test")
+    #print(language)
+    test_detector()
 
 
 if __name__ == "__main__":
