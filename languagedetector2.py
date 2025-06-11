@@ -32,6 +32,11 @@ def load_all_datasets():
     test_df = test_df.rename(columns={'text':'Text', 'labels':'language'})
     valid_df = valid_df.rename(columns={'text':'Text', 'labels':'language'})
 
+    # 🔧 FIX: Clean and normalize language labels to prevent duplicates
+    train_df['language'] = train_df['language'].astype(str).str.strip().str.lower()
+    valid_df['language'] = valid_df['language'].astype(str).str.strip().str.lower()
+    test_df['language'] = test_df['language'].astype(str).str.strip().str.lower()
+
     return train_df, test_df, valid_df
 
 
@@ -98,9 +103,10 @@ def make_predictions(model, X_test_features, y_test):
 
     accuracy = accuracy_score(y_test, y_pred)
 
-    print(f"Accuracy: {accuracy:.4f}")
+    
 
     print(f"\n📊 DETAILED RESULTS:")
+    print(f"Accuracy: {accuracy:.4f}")
     print(classification_report(y_test, y_pred))
 
     # support -> amount of test data
@@ -180,6 +186,45 @@ def quick_detect(model, text):
         return pipeline.predict([text])[0]
     except:
         return "error"
+    
+
+def simple_detect(model, text):
+    try: 
+        pipeline = joblib.load(model)
+        resultPrediction = pipeline.predict([text])[0]
+        resultConfidence = pipeline.predict_proba([text])[0]
+        max_confidence = resultConfidence.max()
+        return {
+            'language': resultPrediction,
+            'confidence': max_confidence
+        }
+    except:
+        return "error"
+
+def detailed_detect(model,text, n):
+    try:
+        pipeline = joblib.load(model)
+        resultPrediction = pipeline.predict([text])[0]
+        resultConfidence = pipeline.predict_proba([text])[0]
+
+        top_indices = np.argsort(resultConfidence)[-n:][::-1]
+        top_predictions =[]
+
+        for idx in top_indices:
+            lang = pipeline.classes_[idx]
+            prob = resultConfidence[idx]
+            top_predictions.append({
+                'language': lang,
+                'confidence': prob,
+                'percentage': f"{prob*100:.1f}%"
+            })
+        return {
+            'top_prediction': resultPrediction,
+            'max_confidence': resultConfidence.max(),
+            'top_results': top_predictions
+        }
+    except:
+        return "error"
 
 def trainmodel():
 
@@ -201,7 +246,7 @@ def trainmodel():
     X_test = test_df['Text']
     y_test = test_df['language']
 
-    X_train_features, X_valid_features, vectorizer = create_features(X_train, X_valid)
+    X_train_features, X_test_features, vectorizer = create_features(X_train, X_valid)
     X_test_features = vectorizer.transform(X_test)
 
     model = train_model(X_train_features, y_train)
@@ -227,63 +272,56 @@ def test_detector():
     
     # Test samples
     test_texts = [
-         "Hello, how are you today?",
-            "The quick brown fox jumps over the lazy dog.",
-            "Machine learning is revolutionizing technology across industries.",
-            "Yesterday I went to the store to buy groceries for dinner.",
-            "The weather forecast predicts rain throughout the weekend.",
-            "Education is the most powerful weapon which you can use to change the world.",
-            "Technology has transformed the way we communicate with each other.",
-            "The scientific method involves observation, hypothesis, and experimentation.",
-            "Hola, ¿cómo estás hoy?",
-            "El zorro marrón rápido salta sobre el perro perezoso.",
-            "La inteligencia artificial está transformando nuestras vidas.",
-            "Ayer fui al mercado para comprar verduras frescas.",
-            "Me gusta leer libros de historia en mi tiempo libre.",
-            "La educación es fundamental para el desarrollo de una sociedad.",
-            "El cambio climático es uno de los desafíos más importantes de nuestra época.",
-            "La literatura española tiene una rica tradición que se remonta a siglos atrás.",
-            "Bonjour, comment allez-vous aujourd'hui?",
-            "Le renard brun rapide saute par-dessus le chien paresseux.",
-            "L'intelligence artificielle révolutionne notre façon de travailler.",
-            "Hier, je suis allé au marché pour acheter des légumes frais.",
-            "J'aime beaucoup lire des romans français le soir.",
-            "L'éducation est la clé du développement personnel et professionnel.",
-            "La cuisine française est reconnue dans le monde entier pour sa sophistication.",
-            "Les innovations technologiques transforment rapidement notre société moderne.",
-                        "こんにちは、今日はいかがですか？",
-            "素早い茶色のキツネが怠惰な犬を飛び越えます。",
-            "人工知能は私たちの働き方を革命的に変えています。",
-            "昨日市場に新鮮な野菜を買いに行きました。",
-            "空いた時間に日本文学を読むのがとても好きです。",
-            "教育は個人と社会の発展にとって不可欠です。",
-            "日本語は独特な文字体系と豊かな表現力を持つ言語です。",
-            "技術革新は現代社会を急速に変革しています。",
-                        "สวัสดี วันนี้เป็นอย่างไรบ้าง?",
-            "จิ้งจอกสีน้ำตาลที่รวดเร็วกระโดดข้ามสุนัขที่ขี้เกียจ",
-            "ปัญญาประดิษฐ์กำลังปฏิวัติวิธีการทำงานของเรา",
-            "เมื่อวานนี้ฉันไปตลาดเพื่อซื้อผักสด",
-            "ฉันชอบอ่านวรรณกรรมไทยในเวลาว่าง",
-            "การศึกษาเป็นกุญแจสำคัญสู่การพัฒนาส่วนบุคคลและสังคม",
-            "ภาษาไทยมีประวัติศาสตร์ด้านวรรณกรรมที่ยาวนานและไวยากรณ์ที่ซับซ้อน",
-            "นวัตกรรมทางเทคโนโลยีกำลังเปลี่ยนแปลงสังคมสมัยใหม่ของเราอย่างรวดเร็ว"
+        
+        "Hola, ¿cómo estás hoy?"
     ]
     
     for text in test_texts:
-        prediction = pipeline.predict([text])[0]
-        probabilities = pipeline.predict_proba([text])[0]
-        confidence = probabilities.max()
-        print(f"'{text}' -> {prediction} (confidence: {confidence:.3f})")
+        result = detailed_detect('languagemodel2.pkl',text,3)
+        #print(result)
+        print(f"TOP PREDICTION : {labelToLanguageDict(result['top_prediction'])} Confidence: ({result['max_confidence']:.3f})" )
+       # prediction = pipeline.predict([text])[0]
+        #probabilities = pipeline.predict_proba([text])[0]
+        #confidence = probabilities.max()
+        #print(f"'{text}' -> {prediction} (confidence: {confidence:.3f})")
 
+def labelToLanguageDict(lang):
+    """
+    Dictionary-based version - more efficient and easier to maintain
+    """
+    language_map = {
+        "ar": "Arabic",
+        "bg": "Bulgarian", 
+        "de": "German",
+        "el": "Modern Greek",
+        "en": "English",
+        "es": "Spanish",
+        "fr": "French",
+        "hi": "Hindi",
+        "it": "Italian",
+        "ja": "Japanese",
+        "nl": "Dutch",
+        "pl": "Polish",
+        "pt": "Portuguese",
+        "ru": "Russian",
+        "sw": "Swahili",
+        "th": "Thai",
+        "tr": "Turkish",
+        "ur": "Urdu",
+        "vi": "Vietnamese",
+        "zh": "Chinese"
+    }
+    
+    return language_map.get(lang, f"Unknown ({lang})")
 
 def main():
 
     # train the model (remove the #)
-    #trainmodel()
+    trainmodel()
     
     #language = quick_detect("languagemodel.pkl","hello this is a new language please detect what language this is please hello test")
     #print(language)
-    test_detector()
+    #test_detector()
 
 
 if __name__ == "__main__":

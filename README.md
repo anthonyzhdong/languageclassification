@@ -208,3 +208,5 @@ This project uses the WiLI-2018 dataset which is publicly available for research
 - **WiLI-2018 Dataset**: Marco Lui and Timothy Baldwin
 - **Kaggle Dataset**: [zarajamshaid](https://www.kaggle.com/datasets/zarajamshaid/language-identification-datasst)
 - **Scikit-learn**: For the machine learning framework
+
+![alt text](image.png)
