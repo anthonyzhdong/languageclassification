@@ -259,10 +259,10 @@ def trainmodel():
 
     return language_detector, model_file
 
-def test_detector():
+def test_detector(fileName):
     """Test the trained detector with sample texts"""
-    print("\n🧪 Testing Language Detector")
-    print("=" * 30)
+    #print("\n🧪 Testing Language Detector")
+    #print("=" * 30)
     
     # Load the saved model
     pipeline = load_model()
@@ -270,16 +270,16 @@ def test_detector():
         print("No trained model found. Please run train_full_pipeline() first.")
         return
     
-    # Test samples
-    test_texts = [
-        
-        "Hola, ¿cómo estás hoy?"
-    ]
+    test_dataset = pd.read_csv(fileName)
     
-    for text in test_texts:
-        result = detailed_detect('languagemodel2.pkl',text,3)
+    for _, row in test_dataset.iterrows():
+        print(row['text'])
+        result = detailed_detect('languagemodel2.pkl',row['text'],3)
+        actual = row['labels']
+        predicted = result['top_prediction']
         #print(result)
-        print(f"TOP PREDICTION : {labelToLanguageDict(result['top_prediction'])} Confidence: ({result['max_confidence']:.3f})" )
+        print(f"Actual: {actual} | Prediction: {labelToLanguageDict(predicted)} | Confidence: ({result['max_confidence']:.3f})" )
+        print(f"Correct: {'✅' if actual == predicted else '❌'}")
        # prediction = pipeline.predict([text])[0]
         #probabilities = pipeline.predict_proba([text])[0]
         #confidence = probabilities.max()
@@ -317,11 +317,11 @@ def labelToLanguageDict(lang):
 def main():
 
     # train the model (remove the #)
-    trainmodel()
+    #trainmodel()
     
     #language = quick_detect("languagemodel.pkl","hello this is a new language please detect what language this is please hello test")
     #print(language)
-    #test_detector()
+    test_detector("newtestdataset.csv")
 
 
 if __name__ == "__main__":
