@@ -195,6 +195,8 @@ def simple_detect(model, text):
         resultConfidence = pipeline.predict_proba([text])[0]
         max_confidence = resultConfidence.max()
         return {
+            'model': model,
+            'text': text,
             'language': resultPrediction,
             'confidence': max_confidence
         }
@@ -319,10 +321,13 @@ def main():
     # train the model (remove the #)
     #trainmodel()
     
-    #language = quick_detect("languagemodel.pkl","hello this is a new language please detect what language this is please hello test")
-    #print(language)
-    test_detector("newtestdataset.csv")
-
+    result = simple_detect("languagemodel2.pkl","hello this is a new language please detect what language this is please hello test")
+    print(f"Model: {result['model']}")
+    print(f"Text Input: {result['text']}")
+    print(labelToLanguageDict(result['language']))
+    print(f"Confidence: {result['confidence']:.3f}")
+    
+    #test_detector("newtestdataset.csv")
 
 if __name__ == "__main__":
     main()
